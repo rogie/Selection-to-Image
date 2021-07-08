@@ -1,0 +1,129 @@
+<div class="prompt">
+  Select a node on the canvas&hellip;
+</div>
+<div class="spinner"></div>
+<script>
+
+async function Uint8ArrayToImage(imageData){
+  return new Promise((resolve, reject) => {
+    let image = new Image()
+    
+    let src = URL.createObjectURL(
+      new Blob([imageData.buffer], { type: 'image/png' } )
+    )
+    image.onload = function(){
+      URL.revokeObjectURL(src)
+      resolve(image)
+    }
+    image.onerror = function(e){
+      console.log('error: ', e)
+      reject()
+    }
+    image.src = src
+  })
+}
+
+async function showNodeExport(imageData){
+  console.log('Length after: ', imageData.length)
+  clearImages()
+  let image = await Uint8ArrayToImage(imageData)
+  console.log("Image Dimensions: ", image.naturalWidth, ' x ', image.naturalHeight)
+  hideLoadingIndicator()
+  document.body.classList.add('has-image')
+  document.body.appendChild(image)
+}
+
+function clearImages(){
+  let images = document.querySelectorAll('img')
+  images.forEach(image => image.remove())
+}
+
+function showLoadingIndicator(){
+  document.body.classList.add('loading')
+}
+
+function hideLoadingIndicator(){
+  document.body.classList.remove('loading')
+}
+
+
+window.addEventListener("message", (event) => {   
+    let message = event.data;
+    if(event.data.pluginMessage){
+        message = event.data.pluginMessage
+
+        if(message.function === "show-node-export"){
+          showNodeExport(message.imageData)
+        }
+        if(message.function === "exporting"){
+          showLoadingIndicator()
+        }
+    }      
+}, false);    
+
+</script>
+<style>
+  html, body{
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+  }
+  *, *:before, *:after{
+    box-sizing: border-box;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  img{
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  }
+  .prompt{
+    
+  }
+  .loading img, 
+  .loading .prompt,
+  .has-image .prompt{
+    display: none;
+  }
+  .loading .spinner{
+    display: block;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: transparent;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-top-color: #000;
+    -webkit-animation: 1s spin linear infinite;
+    animation: 1s spin linear infinite;
+    display: none;
+    position: fixed; 
+    left: calc(50% - 8px);
+    top: calc(50% - 8px);
+  }
+  @keyframes spin {
+    from {
+      -webkit-transform: rotate(0deg);
+      transform: rotate(0deg);
+    }
+    to {
+      -webkit-transform: rotate(360deg);
+      transform: rotate(360deg);
+    }
+  }
+  
+
+</style>
