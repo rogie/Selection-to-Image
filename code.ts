@@ -28,8 +28,8 @@ figma.on("selectionchange", () => {
           node.exportAsync({
               format: "PNG",
               constraint: { 
-                  type: "SCALE", 
-                  value: 1
+                  type: "WIDTH", 
+                  value: 1000
               }
           }).then(imageData => {
 
@@ -49,13 +49,53 @@ figma.on("selectionchange", () => {
     }
 })
 
+function getNodeExport(){
+  if(figma.currentPage.selection.length > 0){
+
+    // Let the plugin window know we are exporting
+    figma.ui.postMessage({
+      function: "exporting"
+    })
+    
+    // For this example, just use the first object
+    let node = figma.currentPage.selection[0]
+
+    figma.ui.postMessage({
+      function: "exporting"
+    })
+
+    // set timeout is kindof a hack to let the postMessage for "exporting"
+    // reach the plugin window before Figma starts cranking on exporting 
+    setTimeout(() => {
+      // Export this node
+      node.exportAsync({
+          format: "PNG",
+          constraint: { 
+              type: "SCALE", 
+              value: 1
+          }
+      }).then(imageData => {
+
+        // Send the image data to the plugin window
+        figma.ui.postMessage({
+          function: "download-node-export",
+          imageData
+        })
+
+      }).catch(e => {
+        console.log('ERROR exportAsync: ', e)
+      })
+    },100)
+  }
+}
+
 // Calls to "parent.postMessage" from within the HTML page will trigger this
 // callback. The callback will be passed the "pluginMessage" property of the
 // posted message.
 figma.ui.onmessage = msg => {
     // One way of distinguishing between different types of messages sent from
     // your HTML page is to use an object with a "type" property like this.
-    if (msg.type === 'function-name') {
-
+    if (msg.function === 'get-node-export') {
+      getNodeExport()
     }
 };

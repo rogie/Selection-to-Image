@@ -2,7 +2,36 @@
   Select a node on the canvas&hellip;
 </div>
 <div class="spinner"></div>
+<button class="download" onclick="getNodeExport()">Export Node as PNG</button>
 <script>
+
+function downloadBlob(blob, name = 'download') {
+  // Convert your blob into a Blob URL (a special url that points to an object in the browser's memory)
+  const blobUrl = URL.createObjectURL(blob)
+
+  // Create a link element
+  const link = document.createElement("a")
+
+  // Set link's href to point to the Blob URL
+  link.href = blobUrl
+  link.download = name
+
+  // Append link to the body
+  document.body.appendChild(link)
+
+  // Dispatch click event on the link
+  // This is necessary as link.click() does not work on the latest firefox
+  link.dispatchEvent(
+    new MouseEvent('click', { 
+      bubbles: true, 
+      cancelable: true, 
+      view: window 
+    })
+  )
+
+  // Remove link from body
+  document.body.removeChild(link)
+}
 
 async function Uint8ArrayToImage(imageData){
   return new Promise((resolve, reject) => {
@@ -24,13 +53,25 @@ async function Uint8ArrayToImage(imageData){
 }
 
 async function showNodeExport(imageData){
-  console.log('Length after: ', imageData.length)
   clearImages()
   let image = await Uint8ArrayToImage(imageData)
-  console.log("Image Dimensions: ", image.naturalWidth, ' x ', image.naturalHeight)
   hideLoadingIndicator()
   document.body.classList.add('has-image')
   document.body.appendChild(image)
+}
+
+function getNodeExport(){
+  parent.postMessage({ 
+    pluginMessage: { 
+      function: "get-node-export"
+    } 
+  }, "*")
+}
+
+function downloadExportedNode(imageData){
+  let imgBlob = new Blob([imageData.buffer], { type: 'image/png' } )
+  downloadBlob(imgBlob,"download.png")
+  hideLoadingIndicator()
 }
 
 function clearImages(){
@@ -54,6 +95,9 @@ window.addEventListener("message", (event) => {
 
         if(message.function === "show-node-export"){
           showNodeExport(message.imageData)
+        }
+        if(message.function === "download-node-export"){
+          downloadExportedNode(message.imageData)
         }
         if(message.function === "exporting"){
           showLoadingIndicator()
@@ -93,10 +137,22 @@ window.addEventListener("message", (event) => {
   }
   .loading img, 
   .loading .prompt,
+  .loading .download,
   .has-image .prompt{
     display: none;
   }
   .loading .spinner{
+    display: block;
+  }
+  .download{
+    display: none;
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    z-index: 1;
+    transform: translateX(-50%);
+  }
+  .has-image .download{
     display: block;
   }
 
